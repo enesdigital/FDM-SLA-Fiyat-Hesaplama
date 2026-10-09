@@ -73,3 +73,15 @@ Varsayılan değerlerin kaynakları: Bambu Lab resmi spec PDF'leri ve Bambu Wiki
 - Gerçek bir dilimleyici çalıştırılmaz; süre tahmini ±%20–30 sapabilir. Ayarlar › **Süre kalibrasyonu** çarpanı ile kendi Bambu Studio / Chitubox sonuçlarınıza göre ayarlayın.
 - Destek hacmi, sarkmanın altındaki model geometrisini hesaba katmaz (üst sınır tahmini).
 - Çok renkli baskıda israf, renk geçişlerine (açık→koyu vs. koyu→açık) göre büyük farklılık gösterir.
+
+## Hostinger VPS yayını
+
+Adres: https://3d-pricing.srv2047910.hstgr.cloud/
+
+Uygulama Nginx üzerinden ayrı bir Docker projesi olarak çalışır. Hesaplamalar, modeller, ayarlar ve teklif geçmişi tarayıcıda tutulur; sunucuda uygulama veritabanı yoktur. Yeni adrese geçerken eski adreste **Ayarlar → Yedek dışa aktar**, yeni adreste **Ayarlar → Yedek içe aktar** kullanılmalıdır. Bu JSON dosyası kişisel veriler içerebilir; GitHub'a eklemeyin.
+
+`Dockerfile` yerelde veya VPS'de üretim imajı oluşturabilir. `deploy/Dockerfile.runtime` önceden derlenmiş `dist` dizinini sunar. `deploy/nginx.conf`, WASM dosyalarını ve PWA dosyalarını doğru içerik türleriyle servis eder; sürümü değişen asset dosyaları uzun süre, HTML ve service worker ise yeniden doğrulanarak önbelleğe alınır.
+
+Sunucu yapılandırması `/docker/3d-pricing/docker-compose.yml`, sürümler `/srv/apps/3d-pricing/releases/`, son başarılı sürüm `/srv/apps/3d-pricing/deployment.json` altındadır. Yayın yardımcısı sadece `dist` dosyalarını kabul eder, SSH kabuğunu ve port yönlendirmesini kapatır. Güncellemelerde önceki yapılandırma `/srv/platform/backups/3d-pricing/` altına kaydedilir; sağlık veya HTTPS doğrulaması başarısız olursa önceki sürüm başlatılır. Kısa bir geçiş kesintisi olabilir.
+
+GitHub üzerinden otomatik yayının etkinleştirilmesi için bu uygulamaya ayrılan deploy anahtarının repository Actions Secret olarak kaydedilmesi gerekir. `deploy/` altındaki sunucu yardımcılarının kurulu kopyaları root'a aittir; bu dosyaların değişmesi sunucu kopyalarını otomatik güncellemez.
