@@ -85,3 +85,9 @@ Uygulama Nginx üzerinden ayrı bir Docker projesi olarak çalışır. Hesaplama
 Sunucu yapılandırması `/docker/3d-pricing/docker-compose.yml`, sürümler `/srv/apps/3d-pricing/releases/`, son başarılı sürüm `/srv/apps/3d-pricing/deployment.json` altındadır. Yayın yardımcısı sadece `dist` dosyalarını kabul eder, SSH kabuğunu ve port yönlendirmesini kapatır. Güncellemelerde önceki yapılandırma `/srv/platform/backups/3d-pricing/` altına kaydedilir; sağlık veya HTTPS doğrulaması başarısız olursa önceki sürüm başlatılır. Kısa bir geçiş kesintisi olabilir.
 
 GitHub üzerinden otomatik yayının etkinleştirilmesi için bu uygulamaya ayrılan deploy anahtarının repository Actions Secret olarak kaydedilmesi gerekir. `deploy/` altındaki sunucu yardımcılarının kurulu kopyaları root'a aittir; bu dosyaların değişmesi sunucu kopyalarını otomatik güncellemez.
+
+### Otomatik yayın
+
+`main` dalına her push, **Deploy 3D-Pricing to Hostinger** işini başlatır. GitHub Actions, Node 24 ile bağımlılıkları kurar, test/lint/tür kontrollerini yapar, kök adres için derler ve sadece `dist` paketini VPS'ye gönderir. Aynı işi Actions sayfasından **Run workflow** ile çalıştırabilirsiniz. Sürüm doğrulaması HTTPS üzerinden `deployment.json` içindeki commit ile yapılır.
+
+Bağlantı ayarları: `PRICING_DEPLOY_SSH_KEY` ve `PRICING_DEPLOY_KNOWN_HOSTS` repository secrets; `PRICING_DEPLOY_HOST` repository variable. Özel anahtar kaynak koduna eklenmez. Depo herkese açıktır; repository write/Actions yetkilerini yalnızca güvenilir kişilere verin. GitHub Pages akışı da mevcut haliyle korunmuştur.

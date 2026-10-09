@@ -1,0 +1,50 @@
+name: Deploy 3D-Pricing to Hostinger
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pricing-production
+  cancel-in-progress: false
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6, Node 24
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Test and lint
+        run: |
+          npm test
+          npm run lint
+          npx tsc --noEmit -p tsconfig.tests.json
+      - name: Build for Hostinger
+        env:
+          VITE_BASE: /
+        run: |
+          npm run build
+          tar -czf "$RUNNER_TEMP/release.tar.gz" dist
+      - name: Deploy and verify HTTPS
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.PRICING_DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.PRICING_DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_HOST: ${{ vars.PRICING_DEPLOY_HOST }}
+          COMMIT_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          install -d -m 700 "$RUNNER_TEMP/pricing-ssh"
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$RUNNER_TEMP/pricing-ssh/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$RUNNER_TEMP/pricing-ssh/known_hosts"
+          chmod 600 "$RUNNER_TEMP/pricing-ssh/"*
+          trap 'rm -f "$RUNNER_TEMP/pricing-ssh/key"' EXIT
+          ssh -T -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=20 -o ServerAliveInterval=15 -o ServerAliveCountMax=4 -o UserKnownHostsFile="$RUNNER_TEMP/pricing-ssh/known_hosts" -i "$RUNNER_TEMP/pricing-ssh/key" "pricing-deploy@$DEPLOY_HOST" "deploy $COMMIT_SHA" < "$RUNNER_TEMP/release.tar.gz"
+          curl --fail --silent --show-error --retry 5 --retry-delay 3 https://3d-pricing.srv2047910.hstgr.cloud/deployment.json | python3 -c 'import json,os,sys; assert json.load(sys.stdin)["commit"]==os.environ["COMMIT_SHA"]; print("Public HTTPS revision verified")'
